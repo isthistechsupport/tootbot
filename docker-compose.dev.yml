@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+    environment:
+      - TOOTBOT_GENERAL_SUBREDDIT_TO_MONITOR
+      - TOOTBOT_REDDIT_AGENT
+      - TOOTBOT_REDDIT_CLIENT_SECRET
+      - TOOTBOT_IMGUR_CLIENT
+      - TOOTBOT_IMGUR_CLIENT_SECRET
+      - TOOTBOT_TWITTER_ACCESS_TOKEN
+      - TOOTBOT_TWITTER_ACCESS_TOKEN_SECRET
+      - TOOTBOT_TWITTER_CONSUMER_KEY
+      - TOOTBOT_TWITTER_CONSUMER_SECRET
+      - REDIS_HOST
+      - REDIS_PORT
+      - REDIS_PASSWORD
+
+  redisdb:
+    image: redis:7.0-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: "redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}"
+    volumes: 
+      - redis:/data
+      
+volumes:
+  redis:
+    driver: local

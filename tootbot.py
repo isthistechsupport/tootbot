@@ -1,10 +1,10 @@
 import os
-import time
 import praw
 import redis
 import tweepy
 import datetime
 import requests
+from threading import Event
 from getmedia import get_media
 from getsettings import get_settings
 
@@ -143,11 +143,14 @@ def check_updates():
         print(f'[ERR ] Error while checking for updates: {str(e)}')
 
 
+exit = Event()
+
+
 def main():
     check_updates()
     settings = get_settings()
     # Run the main script
-    while True:
+    while not exit.is_set():
         # Continue with script
         try:
             subreddit = setup_connection_reddit(settings['general']['subreddit_to_monitor'], settings)
@@ -156,9 +159,27 @@ def main():
         except Exception as e:
             print('[ERR ] Error in main process:', str(e))
         print(f'[ OK ] Sleeping for {int(settings["general"]["delay_between_posts"])} seconds')
-        time.sleep(int(settings['general']['delay_between_posts']))
+        exit.wait(int(settings['general']['delay_between_posts']))
         print('[ OK ] Restarting main process...')
 
 
+def quit(signo, _frame):
+    match signo:
+        case 1:
+            signame = 'SIGHUP'
+        case 2:
+            signame = 'SIGINT'
+        case 15:
+            signame = 'SIGTERM'
+        case _:
+            signame = 'unknown signal'
+    print(f'[WARN] Interrupted by {signame}, shutting down')
+    exit.set()
+
+
 if __name__ == '__main__':
+    import signal
+    for sig in ('TERM', 'HUP', 'INT'):
+        signal.signal(getattr(signal, 'SIG'+sig), quit);
+
     main()
