@@ -54,8 +54,8 @@ def load_reddit_creds(reddit_secret_path: Path):
     """Setup and verify Reddit access"""
     if os.getenv('TOOTBOT_REDDIT_AGENT') and os.getenv('TOOTBOT_REDDIT_CLIENT_SECRET'):
         return {'reddit': {
-                'agent': os.environ['REDDIT_AGENT'],
-                'client_secret': os.environ['REDDIT_CLIENT_SECRET']
+                'agent': os.environ['TOOTBOT_REDDIT_AGENT'],
+                'client_secret': os.environ['TOOTBOT_REDDIT_CLIENT_SECRET']
             }
         }
     elif not reddit_secret_path.exists():
