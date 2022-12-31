@@ -20,3 +20,8 @@ The developers of Tootbot hold no liability for what you do with this script or 
 ## Setup and usage
 
 For instructions on setting up and using Tootbot, please visit [the wiki](https://github.com/corbindavenport/tootbot/wiki).
+
+## TODO
+
+* Document how it now uses Redis instead of a CSV.
+* Add a CapRover easy deployment option
