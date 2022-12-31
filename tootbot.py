@@ -100,7 +100,7 @@ def make_post(post_dict: dict, settings: dict):
     # Post on Twitter
     # Make sure the post contains media, if MEDIA_POSTS_ONLY in config is set to True
     if ((settings['media']['media_posts_only'] and media_file) or not settings['media']['media_posts_only']):
-        #try:
+        try:
             auth = tweepy.OAuthHandler(settings['twitter']['consumer_key'], settings['twitter']['consumer_secret'])
             auth.set_access_token(settings['twitter']['access_token'], settings['twitter']['access_token_secret'])
             twitter = tweepy.API(auth)
@@ -122,10 +122,10 @@ def make_post(post_dict: dict, settings: dict):
                 tweet = twitter.update_status(status=caption)
             # Log the tweet
             log_post(post_id, f'https://twitter.com/{tweet.user.screen_name}/status/{tweet.id_str}/', settings)
-        #except Exception as e:
-        #    print(f'[EROR] Error while posting tweet: {str(e)}')
+        except Exception as e:
+            print(f'[EROR] Error while posting tweet: {str(e)}')
             # Log the post anyways
-        #    log_post(post_id, f'Error while posting tweet: {str(e)}', settings)
+            log_post(post_id, f'Error while posting tweet: {str(e)}', settings)
     else:
         print('[WARN] Twitter: Skipping', post_id, 'because non-media posts are disabled or the media file was not found')
         # Log the post anyways
@@ -287,21 +287,13 @@ else:
 
 # Run the main script
 while True:
-    # Make sure logging file and media directory exists
-    if not os.path.exists(settings['general']['cache_file']):
-        with open(settings['general']['cache_file'], 'w', newline='') as cache:
-            default = ['Reddit post ID', 'Date and time', 'Post link']
-            wr = csv.writer(cache)
-            wr.writerow(default)
-        print(f'[ OK ] {settings["general"]["cache_file"]} file not found, created a new one')
-        cache.close()
     # Continue with script
-    #try:
-    subreddit = setup_connection_reddit(settings['general']['subreddit_to_monitor'], settings)
-    post_dict = get_reddit_posts(subreddit)
-    make_post(post_dict, settings)
-    #except Exception as e:
-    #    print('[EROR] Error in main process:', str(e))
+    try:
+        subreddit = setup_connection_reddit(settings['general']['subreddit_to_monitor'], settings)
+        post_dict = get_reddit_posts(subreddit)
+        make_post(post_dict, settings)
+    except Exception as e:
+        print('[EROR] Error in main process:', str(e))
     print(f'[ OK ] Sleeping for {int(settings["general"]["delay_between_posts"])} seconds')
     time.sleep(int(settings['general']['delay_between_posts']))
     print('[ OK ] Restarting main process...')
