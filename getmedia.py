@@ -1,12 +1,8 @@
 import os
-import sys
-import configparser
-import imghdr
-import urllib.request
-from urllib.request import urlopen
-from urllib.parse import urlsplit
-import requests
 import hashlib
+import requests
+from pathlib import Path
+from urllib.parse import urlsplit
 
 
 def file_as_bytes(file):
@@ -15,60 +11,51 @@ def file_as_bytes(file):
         return file.read()
 
 
-def save_file(url: str, file_path: str):
+def save_file(url: str, file_path: Path):
     """Downloads an URL to a file"""
-    resp = requests.get(url, stream=True, timeout=30)
-    assert resp.status_code == 200, f"Response code was {resp.status_code}"
+    response = requests.get(url, stream=True, timeout=30)
+    assert response.status_code == 200, f"Response code was {response.status_code}"
     #TODO: Add code to compare content-type header with file extension
     with open(file_path, 'wb') as image_file:
-        for chunk in resp.iter_content():
+        for chunk in response.iter_content():
             image_file.write(chunk)
     return file_path
 
 
 def get_reddit_media(url: str, settings: dict):
     """Downloads media from Reddit"""
-    file_name = os.path.basename(urlsplit(url).path)
-    file_extension = os.path.splitext(url)[-1].lower()
+    file_name = Path(urlsplit(url).path).name
+    file_extension = Path(urlsplit(url).path).suffix.lower()
     # Fix for issue with i.reddituploads.com links not having a file extension in the URL
     if not file_extension:
         file_extension = '.jpg'
-        file_name += '.jpg'
-        url += '.jpg'
+        file_name += file_extension
+        url += file_extension
     # Download the file
-    file_path = settings["media"]["media_folder"] + '/' + file_name
-    print(f'[ OK ] Downloading file at URL {url} to {file_path}, file type identified as {file_extension}')
+    file_path = Path(settings["media"]["media_folder"]) / file_name
+    print(f'[ OK ] Downloading Reddit media at URL {url} to {file_path}, file type identified as {file_extension}')
     return save_file(url, file_path)
 
 
 def get_imgur_image_media(url: str, settings: dict):
     """Retrieves a single image from an Imgur i.imgur.com link"""
-    file_url = url.replace(".gifv", ".mp4").lower()  # Get the file URL and replace GIFV or MP4 with GIF versions
-    file_name = os.path.basename(urlsplit(url).path)
-    print(f'[ OK ] Downloading Imgur media at URL {file_url} to {settings["media"]["media_folder"]}')
-    file_path = save_file(file_url, f'{settings["media"]["media_folder"]}/{file_name}')  # Saves the image
-    # Finally lets check if the imgur file is not a thumbnail
-    if ".jpg" not in file_name and imghdr.what(file_path) != "gif":
-        print("[WARN] Imgur has not processed a GIF version of this link, so it can not be posted to Twitter")
-        try:
-            os.remove(file_path)
-        except Exception as e:
-            print(f'[EROR] Error while deleting media file: {str(e)}')
-        finally:
-            raise ValueError(f'GIF not found at url {file_url}')
+    file_url = url
+    file_name = Path(urlsplit(url).path).name
+    file_path = save_file(file_url, Path(settings["media"]["media_folder"]) / file_name)  # Saves the image
+    print(f'[ OK ] Downloading Imgur media at URL {file_url} to {file_path}')
     return file_path
 
 
 def get_imgur_endpoint(url: str, object: str, settings: dict):
     """Retrieves the info of any object/ID pair from the API"""
-    object_id = url.split('/')[-1]  # Get the object ID
+    object_id = Path(urlsplit(url).path).stem  # Get the object ID
     response = requests.get(
         f"https://api.imgur.com/3/{object}/{object_id}",
-        headers={'Authorization': f'Client-ID {settings["imgur"]["imgur_client"]}'},
+        headers={'Authorization': f'Client-ID {settings["imgur"]["client_id"]}'},
         timeout=30
     )
     # Make sure we got a 200 response code
-    assert response.status_code == 200, f"Response code was {response.status_code} with body {response.text}"
+    assert response.status_code == 200, f"Response code was {response.status_code} with body {response.text} from url {response.url}"
     return response.json()
 
 
@@ -97,8 +84,8 @@ def get_imgur_gallery(url: str, settings: dict):
 
 def get_imgur_media(url: str, settings: dict):
     """Downloads any Imgur link"""
-    assert settings["imgur"]["imgur_client"] != "", "Imgur client must not be empty"
-    assert settings["imgur"]["imgur_client_secret"] != "", "Imgur client secret must not be empty"
+    assert settings["imgur"]["client_id"] != "", "Imgur client must not be empty"
+    assert settings["imgur"]["client_secret"] != "", "Imgur client secret must not be empty"
     if "/a/" in url:  # It's an album
         return get_imgur_album(url, settings)
     elif "/gallery/" in url:  # It's a gallery
@@ -109,15 +96,15 @@ def get_imgur_media(url: str, settings: dict):
 
 def get_gfycat_media(url: str, settings: dict):
     """Downloads any Gfycat link"""
-    gfycat_name = os.path.basename(urllib.parse.urlsplit(url).path)
+    gfycat_name = Path(urlsplit(url).path).stem
     response = requests.get(
         f"https://api.gfycat.com/v1/gfycats/{gfycat_name}",
         timeout=30
     )
-    assert response.status_code == 200, f"Response code was {response.status_code} with body {response.text}"
+    assert response.status_code == 200, f"Response code was {response.status_code} with body {response.text} from url {url}"
     gfycat_info: dict = response.json()
     gfycat_url: str = gfycat_info['gfyItem']['gifUrl']
-    file_path = f'{settings["media"]["media_folder"]}/{gfycat_name}.gif'
+    file_path = (Path(settings["media"]["media_folder"])/ gfycat_name).with_suffix('.gif')
     print(f'[ OK ] Downloading Gfycat at URL {gfycat_url} to {file_path}')
     return save_file(gfycat_url, file_path)
 
@@ -128,11 +115,11 @@ def get_giphy_media(url: str, settings: dict):
         f"https://giphy.com/services/oembed/?url={url}",
         timeout=30
     )
-    assert response.status_code == 200, f"Response code was {response.status_code} with body {response.text}"
+    assert response.status_code == 200, f"Response code was {response.status_code} with body {response.text} from url {url}"
     giphy_info: dict = response.json()
     giphy_url: str = giphy_info[url]
-    giphy_id: str = os.path.dirname(urllib.parse.urlsplit(url).path)
-    file_path = f'{settings["media"]["media_folder"]}/{giphy_id}.gif'
+    giphy_id = Path(urlsplit(url).path).parent
+    file_path = (Path(settings["media"]["media_folder"]) / giphy_id).with_suffix('.gif')
     print(f'[ OK ] Downloading Giphy at URL {giphy_url} to {file_path}')
     giphy_file = save_file(giphy_url, file_path)
     # Check the hash to make sure it's not a GIF saying "This content is not available"
@@ -144,15 +131,8 @@ def get_giphy_media(url: str, settings: dict):
 
 def get_media(url: str, settings: dict):
     """Retrieves static images and GIFs from popular image hosts"""
-    # Make sure config file exists
-    try:
-        config = configparser.ConfigParser()
-        config.read('config.ini')
-    except BaseException as e:
-        print('[EROR] Error while reading config file:', str(e))
-        sys.exit()
     # Make sure media folder exists
-    if not os.path.exists(settings["media"]["media_folder"]):
+    if not Path(settings["media"]["media_folder"]).exists():
         os.makedirs(settings["media"]["media_folder"])
         print('[ OK ] Media folder not found, created a new one')
     # Download and save the linked image
@@ -167,18 +147,18 @@ def get_media(url: str, settings: dict):
     else:
         # Check if URL is an image, based on the MIME type
         image_formats = ('image/png', 'image/jpeg', 'image/gif', 'image/webp')
-        img_site = urlopen(url)
-        meta = img_site.info()
+        img_site = requests.get(url)
+        meta = img_site.headers
         if meta["content-type"] in image_formats:
             # URL appears to be an image, so download it
-            file_name = os.path.basename(urllib.parse.urlsplit(url).path)
-            file_path = f'{settings["media"]["media_folder"]}/{file_name}'
+            file_name = Path(urlsplit(url).path).name
+            file_path = Path(settings["media"]["media_folder"]) / file_name
             print(f'[ OK ] Downloading file at URL {url} to {file_path}')
             try:
                 img = save_file(url, file_path)
                 return img
             except Exception as e:
-                print('[EROR] Error while downloading image:', str(e))
+                print('[ERR ] Error while downloading image:', str(e))
                 return
         else:
             raise ValueError(f'URL {url} does not point to a valid image file')
