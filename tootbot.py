@@ -6,6 +6,7 @@ import os
 import csv
 import toml
 import requests
+import redis
 from getmedia import get_media, get_imgur_endpoint
 
 
@@ -78,22 +79,13 @@ def setup_connection_reddit(subreddit: str, settings: dict):
 
 
 def duplicate_check(id: str, settings: dict):
-    value = False
-    with open(settings['general']['cache_file'], 'rt', newline='') as f:
-        reader = csv.reader(f, delimiter=',')
-        for row in reader:
-            if id in row:
-                value = True
-    f.close()
-    return value
+    r = redis.Redis(host=settings['redis']['host'], port=settings['redis']['port'], db=0, password=settings['redis']['password'])
+    return r.get(id)
 
 
 def log_post(id: str, post_url: str, settings: dict):
-    with open(settings['general']['cache_file'], 'a', newline='') as cache:
-        date = datetime.datetime.now().isoformat()
-        wr = csv.writer(cache, delimiter=',')
-        wr.writerow([id, date, post_url])
-    cache.close()
+    r = redis.Redis(host=settings['redis']['host'], port=settings['redis']['port'], db=0, password=settings['redis']['password'])
+    r.set(id, post_url)
 
 
 def get_settings():
@@ -165,6 +157,7 @@ except Exception as e:
 REDDIT_SECRET_PATH = 'reddit.secret'
 IMGUR_SECRET_PATH = 'imgur.secret'
 TWITTER_SECRET_PATH = 'twitter.secret'
+REDIS_SECRET_PATH = 'redis.secret'
 
 
 # Setup and verify Reddit access
@@ -261,6 +254,35 @@ else:
     # Read API keys from secret file
     twitter_config = toml.load(TWITTER_SECRET_PATH)
     settings.update(twitter_config)
+
+
+# Setup and verify Redis access
+if not os.path.exists(REDIS_SECRET_PATH):
+    print('[WARN] API keys for Imgur not found. Please enter them below (see wiki if you need help).')
+    # Whitespaces are stripped from input: https://stackoverflow.com/a/3739939
+    REDIS_HOST = ''.join(input("[ .. ] Enter Redis host: ").split())
+    REDIS_PORT = ''.join(input("[ .. ] Enter Redis port: ").split())
+    REDIS_PASSWORD = ''.join(input("[ .. ] Enter Redis password: ").split())
+    # Make sure authentication is working
+    try:
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, password=REDIS_PASSWORD)
+        assert r.ping(), "Couldn't connect to Redis"
+        # It worked, so save the keys to a file
+        redis_config = {'redis': {
+                'host': REDIS_HOST,
+                'port': REDIS_PORT,
+                'password': REDIS_PASSWORD
+            }
+        }
+        with open(REDIS_SECRET_PATH, 'w') as redis_file:
+            toml.dump(redis_config, redis_file)
+    except Exception as e:
+        print(f'[EROR] Error while connecting to Redis: {str(e)}\n[EROR] Tootbot cannot continue, now shutting down')
+        exit()
+else:
+    # Read API keys from secret file
+    redis_config = toml.load(REDIS_SECRET_PATH)
+    settings.update(redis_config)
 
 
 # Run the main script
