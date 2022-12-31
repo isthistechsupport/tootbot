@@ -1,9 +1,7 @@
 import praw
 import tweepy
-import datetime
 import time
 import os
-import csv
 import toml
 import requests
 import redis
