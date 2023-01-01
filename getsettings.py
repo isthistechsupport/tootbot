@@ -4,6 +4,7 @@ import toml
 import redis
 import tweepy
 from pathlib import Path
+from logger import log_message
 from getmedia import get_imgur_endpoint
 
 
@@ -17,7 +18,7 @@ def load_general_settings(settings_path: Path):
             try:
                 settings = toml.load(settings_path)
             except Exception as e:
-                print(f'[ERR ] Error while reading config file: {str(e)}')
+                log_message('Error while reading config file', 2, e)
                 exit()
         # Load general config vars
         if os.getenv('TOOTBOT_GENERAL_CACHE_FILE'):
@@ -46,7 +47,7 @@ def load_general_settings(settings_path: Path):
         assert settings['general']['subreddit_to_monitor'], 'Subreddit to monitor must be a non empty string'
         return settings
     except Exception as e:
-        print(f'[ERR ] Error while getting configs: {str(e)}\n[ERR ] Tootbot cannot continue, now shutting down')
+        log_message(f'Error while getting configs', 1, e)
         exit()
 
 
@@ -59,7 +60,7 @@ def load_reddit_creds(reddit_secret_path: Path):
             }
         }
     elif not reddit_secret_path.exists():
-        print('[WARN] API keys for Reddit not found. Please enter them below (see wiki if you need help).')
+        log_message('API keys for Reddit not found. Please enter them below (see wiki if you need help).', 3)
         # Whitespaces are stripped from input: https://stackoverflow.com/a/3739939
         REDDIT_AGENT = ''.join(input("[ .. ] Enter Reddit agent: ").split())
         REDDIT_CLIENT_SECRET = ''.join(
@@ -80,7 +81,7 @@ def load_reddit_creds(reddit_secret_path: Path):
                 toml.dump(reddit_config, reddit_file)
             return reddit_config
         except Exception as e:
-            print(f'[ERR ] Error while logging into Reddit: {str(e)}\n[ERR ] Tootbot cannot continue, now shutting down')
+            log_message('Error while logging into Reddit', 1, e)
             exit()
     else:
         # Read API keys from secret file
@@ -96,7 +97,7 @@ def load_imgur_creds(imgur_secret_path: Path):
             }
         }
     elif not imgur_secret_path.exists():
-        print('[WARN] API keys for Imgur not found. Please enter them below (see wiki if you need help).')
+        log_message('API keys for Imgur not found. Please enter them below (see wiki if you need help).', 3)
         # Whitespaces are stripped from input: https://stackoverflow.com/a/3739939
         IMGUR_CLIENT = ''.join(input("[ .. ] Enter Imgur client ID: ").split())
         IMGUR_CLIENT_SECRET = ''.join(
@@ -115,7 +116,7 @@ def load_imgur_creds(imgur_secret_path: Path):
                 toml.dump(imgur_config, imgur_file)
             return imgur_config
         except Exception as e:
-            print(f'[ERR ] Error while logging into Imgur: {str(e)}\n[ERR ] Tootbot cannot continue, now shutting down')
+            log_message('Error while logging into Imgur', 1, e)
             exit()
     else:
         # Read API keys from secret file
@@ -136,20 +137,20 @@ def load_twitter_creds(twitter_secret_path: Path):
         }
     elif not twitter_secret_path.exists():
         # If the secret file doesn't exist, it means the setup process hasn't happened yet
-        print('[WARN] API keys for Twitter not found. Please enter them below (see wiki if you need help).')
+        log_message('API keys for Twitter not found. Please enter them below (see wiki if you need help).', 3)
         # Whitespaces are stripped from input: https://stackoverflow.com/a/3739939
         ACCESS_TOKEN = ''.join(input('[ .. ] Enter access token for Twitter account: ').split())
         ACCESS_TOKEN_SECRET = ''.join(input('[ .. ] Enter access token secret for Twitter account: ').split())
         CONSUMER_KEY = ''.join(input('[ .. ] Enter consumer key for Twitter account: ').split())
         CONSUMER_SECRET = ''.join(input('[ .. ] Enter consumer secret for Twitter account: ').split())
-        print('[ OK ] Attempting to log in to Twitter...')
+        log_message('Attempting to log in to Twitter...', 4)
         try:
             # Make sure authentication is working
             auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
             auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
             twitter = tweepy.API(auth)
             twitter_username: str = twitter.verify_credentials().screen_name
-            print(f'[ OK ] Sucessfully authenticated on Twitter as @{twitter_username}')
+            log_message(f'Sucessfully authenticated on Twitter as @{twitter_username}', 4)
             # It worked, so save the keys to a file
             twitter_config = {'twitter': {
                     'access_token': ACCESS_TOKEN,
@@ -162,7 +163,7 @@ def load_twitter_creds(twitter_secret_path: Path):
                 toml.dump(twitter_config, twitter_file)
             return twitter_config
         except Exception as e:
-            print(f'[ERR ] Error while logging into Twitter: {str(e)}\n[ERR ] Tootbot cannot continue, now shutting down')
+            log_message('Error while logging into Twitter', 1, e)
             exit()
     else:
         # Read API keys from secret file
@@ -179,7 +180,7 @@ def load_redis_creds(redis_secret_path: Path):
             }
         }
     elif not redis_secret_path.exists():
-        print('[WARN] API keys for Imgur not found. Please enter them below (see wiki if you need help).')
+        log_message('API keys for Imgur not found. Please enter them below (see wiki if you need help).', 3)
         # Whitespaces are stripped from input: https://stackoverflow.com/a/3739939
         REDIS_HOST = ''.join(input("[ .. ] Enter Redis host: ").split())
         REDIS_PORT = int(''.join(input("[ .. ] Enter Redis port: ").split()))
@@ -199,7 +200,7 @@ def load_redis_creds(redis_secret_path: Path):
                 toml.dump(redis_config, redis_file)
             return redis_config
         except Exception as e:
-            print(f'[ERR ] Error while connecting to Redis: {str(e)}\n[ERR ] Tootbot cannot continue, now shutting down')
+            log_message('Error while connecting to Redis', 1, e)
             exit()
     else:
         # Read API keys from secret file

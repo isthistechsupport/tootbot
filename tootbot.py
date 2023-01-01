@@ -5,6 +5,7 @@ import tweepy
 import datetime
 import requests
 from threading import Event
+from logger import log_message
 from getmedia import get_media
 from getsettings import get_settings
 
@@ -21,24 +22,24 @@ def strtobool(val: str) -> bool:
     elif val in ('n', 'no', 'f', 'false', 'off', '0'):
         return False
     else:
-        raise ValueError(f'invalid truth value {val}')
+        raise ValueError(f'Invalid boolean text {val}')
 
 
 def get_reddit_posts(subreddit_info: praw.reddit.models.Subreddit, settings: dict) -> dict:
     post_dict = {}
-    print('[ OK ] Getting posts from Reddit...')
+    log_message('Getting posts from Reddit...', 4)
     for submission in subreddit_info.hot(limit=int(settings['general']['post_limit'])):
         if (submission.over_18 and strtobool(settings['general']['nsfw_posts_allowed']) is False):
             # Skip over NSFW posts if they are disabled in the config file
-            print(f'[ OK ] Skipping {submission.id} because it is marked as NSFW')
+            log_message(f'Skipping {submission.id} because it is marked as NSFW', 4)
         elif (submission.is_self and strtobool(settings['general']['self_posts_allowed']) is False):
             # Skip over NSFW posts if they are disabled in the config file
-            print(f'[ OK ] Skipping {submission.id} because it is a self post')
+            log_message(f'Skipping {submission.id} because it is a self post', 4)
         elif (submission.spoiler and strtobool(settings['general']['spoilers_allowed']) is False):
             # Skip over posts marked as spoilers if they are disabled in the config file
-            print(f'[ OK ] Skipping {submission.id} because it is marked as a spoiler')
+            log_message(f'Skipping {submission.id} because it is marked as a spoiler', 4)
         elif (submission.stickied):
-            print(f'[ OK ] Skipping {submission.id} because it is stickied')
+            log_message(f'Skipping {submission.id} because it is stickied', 4)
         else:
             # Create dict
             post_dict[submission.id] = submission
@@ -69,7 +70,7 @@ def get_twitter_caption(submission: praw.reddit.models.Submission, settings: dic
 
 
 def setup_connection_reddit(subreddit: str, settings: dict):
-    print('[ OK ] Setting up connection with Reddit...')
+    log_message('Setting up connection with Reddit...', 4)
     r = praw.Reddit(
         user_agent='Tootbot',
         client_id=settings['reddit']['agent'],
@@ -90,6 +91,9 @@ def log_post(id: str, post_url: str, settings: dict):
 
 def make_post(post_dict: dict, settings: dict):
     post = next((post for post in post_dict if not duplicate_check(post, settings)), None)
+    if not post:
+        log_message('No new posts found', 4)
+        return
     post_id = post_dict[post].id
     media_file = get_media(post_dict[post].url, settings)
     # Post on Twitter
@@ -103,27 +107,27 @@ def make_post(post_dict: dict, settings: dict):
             caption = get_twitter_caption(post_dict[post], settings)
                 # Post the tweet
             if (media_file):
-                print(f'[ OK ] Posting this on Twitter with media attachment: {caption}')
+                log_message(f'Posting this on Twitter with media attachment: {caption}', 4)
                 media = twitter.media_upload(filename=media_file)
-                assert media, "Couldn't load media"
+                assert media, "Couldn't load media to Twitter"
                 tweet = twitter.update_status(status=caption, media_ids=[media.media_id_string])
                 # Clean up media file
                 try:
                     os.remove(media_file)
-                    print(f'[ OK ] Deleted media file at {media_file}')
+                    log_message(f'Deleted media file at {media_file}', 4)
                 except Exception as e:
-                    print(f'[ERR ] Error while deleting media file: {str(e)}')
+                    log_message(f'Error while deleting media file', 2, e)
             else:
-                print('[ OK ] Posting this on Twitter: {caption}')
+                log_message('Posting this on Twitter: {caption}', 4)
                 tweet = twitter.update_status(status=caption)
             # Log the tweet
             log_post(post_id, f'https://twitter.com/{tweet.user.screen_name}/status/{tweet.id_str}/', settings)
         except Exception as e:
-            print(f'[ERR ] Error while posting tweet: {str(e)}')
+            log_message('Error while posting tweet', 2, e)
             # Log the post anyways
-            log_post(post_id, f'Error while posting tweet: {str(e)}', settings)
+            log_post(post_id, f'Error while posting tweet: {str(e.__class__)}: {str(e)}', settings)
     else:
-        print('[WARN] Twitter: Skipping', post_id, 'because non-media posts are disabled or the media file was not found')
+        log_message('Twitter: Skipping {post_id} because non-media posts are disabled or the media file was not found', 3)
         # Log the post anyways
         log_post(post_id, 'Twitter: Skipped because non-media posts are disabled or the media file was not found', settings)
 
@@ -135,12 +139,12 @@ def check_updates():
         new_version = float(response.text)
         current_version = 3.0  # Current version of script
         if (current_version < new_version):
-            print(f'[WARN] A new version of Tootbot ({str(new_version)}) is available! (you have {str(current_version)})')
-            print('[WARN] Get the latest update from here: https://github.com/isthistechsupport/tootbot/releases')
+            log_message(f'A new version of Tootbot ({str(new_version)}) is available! (you have {str(current_version)})', 3)
+            log_message('Get the latest update from here: https://github.com/isthistechsupport/tootbot/releases', 3)
         else:
-            print(f'[ OK ] You have the latest version of Tootbot ({str(current_version)})')
+            log_message(f'You have the latest version of Tootbot ({str(current_version)})', 4)
     except Exception as e:
-        print(f'[ERR ] Error while checking for updates: {str(e)}')
+        log_message(f'Error while checking for updates', 2, e)
 
 
 exit = Event()
@@ -157,23 +161,19 @@ def main():
             post_dict = get_reddit_posts(subreddit, settings)
             make_post(post_dict, settings)
         except Exception as e:
-            print('[ERR ] Error in main process:', str(e))
-        print(f'[ OK ] Sleeping for {int(settings["general"]["delay_between_posts"])} seconds')
+            log_message('Error in main process:', 2, e)
+        log_message(f'Sleeping for {int(settings["general"]["delay_between_posts"])} seconds', 4)
         exit.wait(int(settings['general']['delay_between_posts']))
-        print('[ OK ] Restarting main process...')
+        log_message('Restarting main process...', 4)
 
 
 def quit(signo, _frame):
     match signo:
-        case 1:
-            signame = 'SIGHUP'
-        case 2:
-            signame = 'SIGINT'
-        case 15:
-            signame = 'SIGTERM'
-        case _:
-            signame = 'unknown signal'
-    print(f'[WARN] Interrupted by {signame}, shutting down')
+        case 1: signame = 'SIGHUP'
+        case 2: signame = 'SIGINT'
+        case 15: signame = 'SIGTERM'
+        case _: signame = 'unknown signal'
+    log_message(f'Interrupted by {signame}, shutting down', 1)
     exit.set()
 
 

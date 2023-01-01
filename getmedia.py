@@ -3,7 +3,9 @@ import hashlib
 import requests
 from pathlib import Path
 from urllib.parse import urlsplit
+from logger import log_message
 
+#TODO: Add reddit gallery and video handlers, support adding the first 4 images from imgur albums, possibly start threads for longer albums?
 
 def file_as_bytes(file):
     """Opens a file as a string of bytes"""
@@ -14,36 +16,33 @@ def file_as_bytes(file):
 def save_file(url: str, file_path: Path):
     """Downloads an URL to a file"""
     response = requests.get(url, stream=True, timeout=30)
-    assert response.status_code == 200, f"Response code was {response.status_code}"
+    assert response.status_code == 200, f"Response code at URL {url} was {response.status_code}"
     #TODO: Add code to compare content-type header with file extension
     with open(file_path, 'wb') as image_file:
         for chunk in response.iter_content():
             image_file.write(chunk)
+    log_message(f"Downloaded file from URL {url} to path {file_path}", 4)
     return file_path
 
 
 def get_reddit_media(url: str, settings: dict):
     """Downloads media from Reddit"""
     file_name = Path(urlsplit(url).path).name
-    file_extension = Path(urlsplit(url).path).suffix.lower()
     # Fix for issue with i.reddituploads.com links not having a file extension in the URL
+    file_extension = Path(urlsplit(url).path).suffix
     if not file_extension:
-        file_extension = '.jpg'
-        file_name += file_extension
-        url += file_extension
+        file_name = Path(file_name).with_suffix('.jpg')
+        url += '.jpg'
     # Download the file
-    file_path = Path(settings["media"]["media_folder"]) / file_name
-    print(f'[ OK ] Downloading Reddit media at URL {url} to {file_path}, file type identified as {file_extension}')
+    file_path = Path(settings['media']['media_folder']) / file_name
     return save_file(url, file_path)
 
 
 def get_imgur_image_media(url: str, settings: dict):
     """Retrieves a single image from an Imgur i.imgur.com link"""
-    file_url = url
     file_name = Path(urlsplit(url).path).name
-    file_path = save_file(file_url, Path(settings["media"]["media_folder"]) / file_name)  # Saves the image
-    print(f'[ OK ] Downloading Imgur media at URL {file_url} to {file_path}')
-    return file_path
+    file_path = Path(settings["media"]["media_folder"]) / file_name
+    return save_file(url, file_path)
 
 
 def get_imgur_endpoint(url: str, object: str, settings: dict):
@@ -55,7 +54,7 @@ def get_imgur_endpoint(url: str, object: str, settings: dict):
         timeout=30
     )
     # Make sure we got a 200 response code
-    assert response.status_code == 200, f"Response code was {response.status_code} with body {response.text} from url {response.url}"
+    assert response.status_code == 200, f"Response code was {response.status_code} from url {response.url}"
     return response.json()
 
 
@@ -105,7 +104,6 @@ def get_gfycat_media(url: str, settings: dict):
     gfycat_info: dict = response.json()
     gfycat_url: str = gfycat_info['gfyItem']['gifUrl']
     file_path = (Path(settings["media"]["media_folder"])/ gfycat_name).with_suffix('.gif')
-    print(f'[ OK ] Downloading Gfycat at URL {gfycat_url} to {file_path}')
     return save_file(gfycat_url, file_path)
 
 
@@ -120,7 +118,6 @@ def get_giphy_media(url: str, settings: dict):
     giphy_url: str = giphy_info[url]
     giphy_id = Path(urlsplit(url).path).parent
     file_path = (Path(settings["media"]["media_folder"]) / giphy_id).with_suffix('.gif')
-    print(f'[ OK ] Downloading Giphy at URL {giphy_url} to {file_path}')
     giphy_file = save_file(giphy_url, file_path)
     # Check the hash to make sure it's not a GIF saying "This content is not available"
     # More info: https://github.com/corbindavenport/tootbot/issues/8
@@ -134,7 +131,7 @@ def get_media(url: str, settings: dict):
     # Make sure media folder exists
     if not Path(settings["media"]["media_folder"]).exists():
         os.makedirs(settings["media"]["media_folder"])
-        print('[ OK ] Media folder not found, created a new one')
+        log_message('Media folder not found, created a new one', 4)
     # Download and save the linked image
     if 'redd.it' in url or 'reddituploads.com' in url:  # Reddit-hosted images
         return get_reddit_media(url, settings)
@@ -153,12 +150,10 @@ def get_media(url: str, settings: dict):
             # URL appears to be an image, so download it
             file_name = Path(urlsplit(url).path).name
             file_path = Path(settings["media"]["media_folder"]) / file_name
-            print(f'[ OK ] Downloading file at URL {url} to {file_path}')
             try:
-                img = save_file(url, file_path)
-                return img
+                return save_file(url, file_path)
             except Exception as e:
-                print('[ERR ] Error while downloading image:', str(e))
+                log_message('Error while downloading image', 2, e)
                 return
         else:
             raise ValueError(f'URL {url} does not point to a valid image file')
