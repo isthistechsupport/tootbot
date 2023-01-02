@@ -15,6 +15,6 @@ def log_message(message: str, severity: int, error = None):
         case 4: sev_text = 'INFO'
         case _: raise ValueError(f'Unknown severity level {severity}')
     if error:
-        print(f'{datetime.datetime.now().isoformat}: [{sev_text}] {message} {str(error.__class__)}: {str(error)}')
+        print(f'{datetime.datetime.now().isoformat()}: [{sev_text}] {message} ({str(error.__class__)}: {str(error)})')
     else:
-        print(f'{datetime.datetime.now().isoformat}: [{sev_text}] {message}')
+        print(f'{datetime.datetime.now().isoformat()}: [{sev_text}] {message}')

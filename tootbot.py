@@ -153,9 +153,13 @@ exit = Event()
 def main():
     check_updates()
     settings = get_settings()
+    i = 1
     # Run the main script
     while not exit.is_set():
         # Continue with script
+        i += 1
+        if i > 1:
+            log_message(f'Restarting main process (iteration: {i})', 4)
         try:
             subreddit = setup_connection_reddit(settings['general']['subreddit_to_monitor'], settings)
             post_dict = get_reddit_posts(subreddit, settings)
@@ -164,7 +168,6 @@ def main():
             log_message('Error in main process:', 2, e)
         log_message(f'Sleeping for {int(settings["general"]["delay_between_posts"])} seconds', 4)
         exit.wait(int(settings['general']['delay_between_posts']))
-        log_message('Restarting main process...', 4)
 
 
 def quit(signo, _frame):
