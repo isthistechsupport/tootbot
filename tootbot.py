@@ -132,26 +132,10 @@ def make_post(post_dict: dict, settings: dict):
         log_post(post_id, 'Twitter: Skipped because non-media posts are disabled or the media file was not found', settings)
 
 
-def check_updates():
-    # Check for updates
-    try:
-        response = requests.get("https://raw.githubusercontent.com/isthistechsupport/tootbot/update-check/current-version.txt")
-        new_version = float(response.text)
-        current_version = 3.0  # Current version of script
-        if (current_version < new_version):
-            log_message(f'A new version of Tootbot ({str(new_version)}) is available! (you have {str(current_version)})', 3)
-            log_message('Get the latest update from here: https://github.com/isthistechsupport/tootbot/releases', 3)
-        else:
-            log_message(f'You have the latest version of Tootbot ({str(current_version)})', 4)
-    except Exception as e:
-        log_message(f'Error while checking for updates', 2, e)
-
-
 exit = Event()
 
 
 def main():
-    check_updates()
     settings = get_settings()
     i = 1
     # Run the main script
