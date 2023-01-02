@@ -3,4 +3,4 @@ FROM python:3.10.9-alpine
 WORKDIR /app
 COPY ["*.py", "*.txt", "*.template", "/app/"]
 RUN pip3 install -r requirements.txt
-CMD [ "python3", "tootbot.py" ]
+CMD [ "python3", "-u", "tootbot.py" ]
