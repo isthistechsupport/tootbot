@@ -178,7 +178,7 @@ def load_redis_creds(redis_secret_path: Path):
             }
         }
     elif not redis_secret_path.exists():
-        log_message('API keys for Imgur not found. Please enter them below (see wiki if you need help).', 3)
+        log_message('Redis credentials not found. Please enter them below (see wiki if you need help).', 3)
         # Whitespaces are stripped from input: https://stackoverflow.com/a/3739939
         REDIS_HOST = ''.join(input("[ .. ] Enter Redis host: ").split())
         REDIS_PORT = int(''.join(input("[ .. ] Enter Redis port: ").split()))
