@@ -2,8 +2,6 @@
 
 # General settings
 [general]
-# File name for the cache spreadsheet (default is 'cache.csv')
-cache_file = "cache.csv"
 # Minimum delay between social media posts, in seconds (default is '600')
 delay_between_posts = 600
 # Minimum position of post on subreddit front page that the bot will look at (default is '10')
@@ -20,7 +18,7 @@ spoilers_allowed = true
 self_posts_allowed = true
 # List of hashtags to be used on every post, separated by commas without # symbols (example: hashtag1, hashtag2)
 # Leaving this blank will disable hashtags
-hashtags = "" 
+hashtags = ""
 
 # Settings related to media attachments
 [media]

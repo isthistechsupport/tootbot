@@ -25,3 +25,4 @@ For instructions on setting up and using Tootbot, please visit [the wiki](https:
 
 * Document how it now uses Redis instead of a CSV.
 * Add a CapRover easy deployment option
+* Document how to set up with settings.toml or .env

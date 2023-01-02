@@ -21,8 +21,6 @@ def load_general_settings(settings_path: Path):
                 log_message('Error while reading config file', 2, e)
                 exit()
         # Load general config vars
-        if os.getenv('TOOTBOT_GENERAL_CACHE_FILE'):
-            settings['general']['cache_file'] = os.environ['TOOTBOT_GENERAL_CACHE_FILE']
         if os.getenv('TOOTBOT_GENERAL_DELAY_BETWEEN_POSTS'):
             settings['general']['delay_between_posts'] = os.environ['TOOTBOT_GENERAL_DELAY_BETWEEN_POSTS']
         if os.getenv('TOOTBOT_GENERAL_POST_LIMIT'):
@@ -172,11 +170,11 @@ def load_twitter_creds(twitter_secret_path: Path):
 
 def load_redis_creds(redis_secret_path: Path):
     """Setup and verify Redis access"""
-    if os.getenv('REDIS_HOST') and os.getenv('REDIS_PORT') and os.getenv('REDIS_PASSWORD'):
+    if os.getenv('TOOTBOT_REDIS_HOST') and os.getenv('TOOTBOT_REDIS_PORT') and os.getenv('TOOTBOT_REDIS_PASSWORD'):
         return {'redis': {
-                'host': os.environ['REDIS_HOST'],
-                'port': os.environ['REDIS_PORT'],
-                'password': os.environ['REDIS_PASSWORD']
+                'host': os.environ['TOOTBOT_REDIS_HOST'],
+                'port': os.environ['TOOTBOT_REDIS_PORT'],
+                'password': os.environ['TOOTBOT_REDIS_PASSWORD']
             }
         }
     elif not redis_secret_path.exists():
