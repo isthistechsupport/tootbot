@@ -16,6 +16,8 @@ services:
       - TOOTBOT_REDIS_HOST
       - TOOTBOT_REDIS_PORT
       - TOOTBOT_REDIS_PASSWORD
+    depends_on:
+      - redisdb
 
   redisdb:
     image: redis:7.0-alpine
