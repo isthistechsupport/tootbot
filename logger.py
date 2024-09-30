@@ -2,6 +2,7 @@ import os
 import sys
 import socket
 import logging
+import logging.config
 from logging.handlers import SysLogHandler
 
 
@@ -57,6 +58,14 @@ def init_logging():
                 "stream": sys.stdout,
                 "formatter": "default",
                 "filters": ["context_filter", "level_filter"],
+                "level": logging.INFO
+            },
+            "stderr": {
+                "class": "logging.StreamHandler",
+                "stream": sys.stderr,
+                "formatter": "default",
+                "filters": ["context_filter"],
+                "level": logging.ERROR,
             },
         },
         "loggers": {
@@ -66,32 +75,5 @@ def init_logging():
             },
         },
     }
-
-
-    # This is the format for the log messages
-    format_str = '%(asctime)s %(hostname)s %(levelname)s %(name)s: %(message)s'
-    formatter = logging.Formatter(format_str, datefmt='%b %d %H:%M:%S')
-
-    # These are the syslog parameters
-    syslog_url = os.getenv('LOG_DESTINATION', 'localhost') # Backwards compatible with the original papertrail setup
-    syslog_port = int(os.getenv('LOG_PORT', 514)) # Backwards compatible with the original papertrail setup
-    syslog_address = (syslog_url, syslog_port)
-
-    # This is the syslog handlers to send logs to the log sink
-    syslog = SysLogHandler(address=syslog_address, facility=SysLogHandler.LOG_USER)
-    syslog.addFilter(ContextFilter())
-    syslog.setFormatter(formatter)
-    syslog.setLevel(logging.INFO)
-
-    # This is the stream handler to send logs to stdout
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.addFilter(ContextFilter())
-    stream_handler.setFormatter(formatter)
-    stream_handler.setLevel(logging.INFO)
-
-    # This is the logger object
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    logger.addHandler(syslog)
-    logger.addHandler(stream_handler)
+    logging.config.dictConfig(CONFIG)
     # End logging initialization
