@@ -1,10 +1,16 @@
-version: '3.8'
-
 services:
   app:
     image: isthistechsupport/tootbot:latest
     environment:
       - TOOTBOT_GENERAL_SUBREDDIT_TO_MONITOR
+      - TOOTBOT_GENERAL_DELAY_BETWEEN_POSTS
+      - TOOTBOT_GENERAL_POST_LIMIT
+      - TOOTBOT_GENERAL_NSFW_POSTS_ALLOWED
+      - TOOTBOT_GENERAL_SPOILERS_ALLOWED
+      - TOOTBOT_GENERAL_SELF_POSTS_ALLOWED
+      - TOOTBOT_GENERAL_HASHTAGS
+      - TOOTBOT_MEDIA_MEDIA_FOLDER
+      - TOOTBOT_MEDIA_MEDIA_POSTS_ONLY
       - TOOTBOT_REDDIT_AGENT
       - TOOTBOT_REDDIT_CLIENT_SECRET
       - TOOTBOT_IMGUR_CLIENT
@@ -16,11 +22,13 @@ services:
       - TOOTBOT_REDIS_HOST
       - TOOTBOT_REDIS_PORT
       - TOOTBOT_REDIS_PASSWORD
+      - TOOTBOT_LOG_DESTINATION
+      - TOOTBOT_LOG_PORT
     depends_on:
       - redisdb
 
   redisdb:
-    image: redis:7.0-alpine
+    image: redis:7-alpine
     restart: always
     ports:
       - '6379:6379'
