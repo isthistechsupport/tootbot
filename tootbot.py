@@ -64,9 +64,9 @@ def get_twitter_caption(submission: praw.reddit.models.Submission) -> str:
     twitter_max_title_length = 280 - len(submission.shortlink) - len(hashtag_string) - 1
     # Create contents of the Twitter post
     if len(submission.title) < twitter_max_title_length:
-        twitter_caption = f'{submission.title} {hashtag_string}{submission.shortlink}'
+        twitter_caption = f'{submission.title} {hashtag_string} {submission.shortlink}'
     else:
-        twitter_caption = f'{submission.title[:twitter_max_title_length-3]}... {hashtag_string}{submission.shortlink}'
+        twitter_caption = f'{submission.title[:twitter_max_title_length-3]}... {hashtag_string} {submission.shortlink}'
     return twitter_caption
 
 
