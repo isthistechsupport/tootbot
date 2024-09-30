@@ -31,8 +31,8 @@ services:
     image: redis:7-alpine
     restart: always
     ports:
-      - '6379:6379'
-    command: "redis-server --save 20 1 --loglevel warning --requirepass ${TOOTBOT_REDIS_PASSWORD}"
+      - '${TOOTBOT_REDIS_PORT}:${TOOTBOT_REDIS_PORT}'
+    command: "redis-server --save 20 1 --loglevel warning --requirepass ${TOOTBOT_REDIS_PASSWORD} --port ${TOOTBOT_REDIS_PORT}"
     volumes: 
       - redis:/data
 
