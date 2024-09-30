@@ -32,7 +32,7 @@ def init_logging():
         "formatters": {
             "default": {
                 "format": "%(asctime)s %(hostname)s %(levelname)s tootbot: %(message)s",
-                "datefmt": "%Y-%m-%d %H:%M:%S",
+                "datefmt": "%b %d %H:%M:%S",
             },
         },
         "filters": {
