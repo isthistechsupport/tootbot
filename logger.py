@@ -47,8 +47,7 @@ def init_logging():
         "handlers": {
             "syslog": {
                 "class": "logging.handlers.SysLogHandler",
-                "address": (os.getenv("LOG_DESTINATION", "localhost"), int(os.getenv("LOG_PORT", 514))),
-                "facility": "LOG_USER",
+                "address": (os.getenv("TOOTBOT_LOG_DESTINATION", "localhost"), int(os.getenv("TOOTBOT_LOG_PORT", 514))),
                 "formatter": "default",
                 "filters": ["context_filter"],
                 "level": logging.INFO,
