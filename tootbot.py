@@ -141,7 +141,7 @@ def post_tweet(caption: str, media_file: Path | None = None):
 
 def make_post(post_dict: dict[str, praw.reddit.models.Submission]):
     """Check for new posts and post them to Twitter, if possible"""
-    post = next((post for post in post_dict if not duplicate_check(post)))
+    post = next((post for post in post_dict if not duplicate_check(post)), None)
     if not post:
         logging.info('No new posts found')
         return
